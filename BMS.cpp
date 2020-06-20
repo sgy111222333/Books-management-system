@@ -17,15 +17,16 @@
 #include <iostream>
 #include <string.h>  //string字符串
 #include <fstream>   //文件输入输出
+#include <sstream>   //string转int时 要用到
 #include <windows.h> //Sleep函数
 using namespace std;
 
 void menu()
 {
-    system("cls"); //                                                
+    system("cls"); //
     cout << "**********************************" << endl;
     cout << "*-----欢迎使用图书管理系统v1.0---*" << endl;
-    cout << "*---------1.按序查找图书---------*" << endl;
+    cout << "*---------1.排序查找图书---------*" << endl;
     cout << "*---------2.管理图书信息---------*" << endl;
     cout << "*---------3.书籍类型管理---------*" << endl;
     cout << "*---------4.供应商管理-----------*" << endl;
@@ -95,7 +96,7 @@ int typesum;
 int booksum;
 int suppliersum;
 
-class Type //图书类型
+class Type //类型
 {
 public:
     string leixing;
@@ -108,6 +109,8 @@ public:
     {
         return leixing;
     }
+    friend void type_load();
+    void save();
 } type[20];
 
 class Book //图书
@@ -118,7 +121,7 @@ private:
     string writer;    //作者
     string publisher; //供应商
     int store;        //库存
-    Type type;        //类型
+    string leixing;   //类型
 
 public:
     Book() {}
@@ -129,7 +132,7 @@ public:
         string writer = c;
         string publisher = d;
         int store = e;
-        type.leixing = f;
+        string leixing = f;
     }
 
     string get_bnum() { return bnum; }
@@ -137,7 +140,11 @@ public:
     string get_writer() { return writer; }
     string get_publisher() { return publisher; }
     int get_store() { return store; }
-    string get_leixing() { return type.get_leixing(); }
+    string get_leixing() { return leixing; }
+
+    friend void book_load();
+    void save();
+
     void input_book()
     {
         cout << "请输入书号:";
@@ -145,7 +152,7 @@ public:
         cout << "请输入书名:";
         cin >> bname;
         cout << "请输入类型:";
-        cin >> type.leixing;
+        cin >> leixing;
         cout << "请输入作者:";
         cin >> writer;
         cout << "请输入出版商:";
@@ -157,7 +164,7 @@ public:
     {
         cout << "书号:" << bnum << endl;
         cout << "书名:" << bname << endl;
-        cout << "类型:" << type.leixing << endl;
+        cout << "类型:" << leixing << endl;
         cout << "作者:" << writer << endl;
         cout << "出版商:" << publisher << endl;
         cout << "库存:" << store << endl;
@@ -187,7 +194,7 @@ public:
             break;
         case 3:
             cout << "请输入修改后的类型:" << endl;
-            cin >> type.leixing;
+            cin >> leixing;
             break;
         case 4:
             cout << "请输入修改后的作者:" << endl;
@@ -212,11 +219,11 @@ public:
 class Supplier //供应商
 {
 private:
-    string snum;    //供应商编号
-    string sname;   //供应商名称
-    string address; //地址
-    string phone;   //电话
-    Type type;      //类型
+    string snum;     //供应商编号
+    string sname;    //供应商名称
+    string address;  //地址
+    string phone;    //电话
+    string sleixing; //类型
 public:
     Supplier() {}
     Supplier(string a, string b, string c, string d, string e, string f)
@@ -226,13 +233,15 @@ public:
         string leixing = c;
         string address = d;
         string phone = e;
-        type.leixing = f;
+        string sleixing = f;
     }
     string get_snum() { return snum; }
     string get_sname() { return sname; }
     string get_address() { return address; }
     string get_phone() { return phone; }
-    string get_leixing() { return type.leixing; }
+    string get_sleixing() { return sleixing; }
+    friend void supplier_load();
+    void save();
     void input_supplier()
     {
         cout << "请输入供应商编号:";
@@ -240,7 +249,7 @@ public:
         cout << "请输入供应商名称:";
         cin >> sname;
         cout << "请输入供书类型:";
-        cin >> type.leixing;
+        cin >> sleixing;
         cout << "请输入供应商地址:";
         cin >> address;
         cout << "请输入电话:";
@@ -250,7 +259,7 @@ public:
     {
         cout << "编号:" << snum << endl;
         cout << "名称:" << sname << endl;
-        cout << "类型:" << type.leixing << endl;
+        cout << "类型:" << sleixing << endl;
         cout << "地址:" << address << endl;
         cout << "电话:" << phone << endl;
     }
@@ -276,7 +285,7 @@ public:
             break;
         case 3:
             cout << "请输入修改后的类型:" << endl;
-            cin >> type.leixing;
+            cin >> sleixing;
             break;
         case 4:
             cout << "请输入修改后的地址:" << endl;
@@ -297,41 +306,59 @@ public:
 class Supply : public Book, public Supplier //供书情况  继承自书和供应商
 {
 private:
-    int i, j, k;
-
-    string a;
-    string sbook[1000]; //sbook为每个供应商所对应的图书
-
+    int i, j, fg = 0;
+    string s, m = "";
+    string sbook[10]; //sbook为每个供应商所对应的图书
 public:
-    void tongji()
+    string tj_leixing()
     {
-        cout << "请输入要查找的图书类型:";
-        cin >> a;
-
-        for (j = 0; j < booksum; j++)
+        cout << "请输入要统计的供应商编号:";
+        cin >> s;
+        for (i = 0; i < suppliersum; i++)
         {
-            for (i = 0; i < booksum - j - 1; i++)
+            if (s.compare(supplier[i].get_snum()) == 0)
             {
-                if (a.compare(book[j].get_leixing()) == 0)
-                {
-                    sbook[i] = book[j].get_bname();
-                }
-                else
-                {
-                    break;
-                }
+                fg = 1;
+                m = supplier[i].get_sleixing();
+                break;
             }
         }
-    }
-    void get_sbook()
-    {
-        for (i = 0; i < booksum; i++)
+        if (0 == fg)
         {
-            cout << sbook[1] << endl;
+            cout << "该编号不存在!" << endl;
+            Sleep(1000);
         }
-        system("pause");
+        //cout << m << endl;
+        return m;
     }
 } sp;
+
+void tongji()
+{
+    int count, flg = 0;
+    string lx = sp.tj_leixing();
+    //cout << lx << endl;
+    if (lx.empty())
+    {
+        return;
+    }
+    cout << "供应类型:" << lx << endl;
+    for (int i = 0; i < booksum; i++)
+        if (lx.compare(book[i].get_leixing()) == 0)
+        {
+            flg = 1;
+            cout << "--------------------" << endl;
+            book[i].display_book();
+            cout << "--------------------" << endl;
+            count++;
+        }
+    if (0 == flg)
+    {
+        cout << "无该类型图书" << endl;
+        Sleep(1000);
+    }
+    return;
+}
 
 void sort_book_num() //按编号对图书排序
 {
@@ -380,6 +407,211 @@ void sort_book_name() //按书名对图书排序
     }
     system("pause");
 }
+//*****************************以下为初始化*********************************
+void type_load()
+{
+    ifstream ifs;
+    string leixing;
+    int i = 0, sum = 0;
+    ifs.open("Type.txt", ios::in);
+    //****************************************************//遍历书号
+    while (getline(ifs, leixing))
+    {
+        if (leixing.substr(0, 6) == "类型")
+        {
+            type[sum].leixing = leixing.substr(7, -1);
+            sum++;
+        }
+    }
+    typesum = sum; //书号的个数即为图书本数
+    ifs.close();
+}
+
+void book_load()
+{
+    ifstream ifs;
+    string bnum, bname, writer, publisher, store, leixing;
+    int i = 0, sum = 0;
+    ifs.open("Book.txt", ios::in);
+    //****************************************************//遍历书号
+    while (getline(ifs, bnum))
+    {
+        if (bnum.substr(0, 7) == "书号:")
+        {
+            book[sum].bnum = bnum.substr(7, -1);
+            sum++;
+        }
+    }
+    booksum = sum; //书号的个数即为图书本数
+    ifs.close();
+    //****************************************************//遍历书名
+    ifs.open("Book.txt", ios::in);
+    while (getline(ifs, bname))
+    {
+        if (bname.substr(0, 7) == "书名:")
+        {
+            book[i].bname = bname.substr(7, -1);
+            i++;
+        }
+    }
+    ifs.close();
+    //****************************************************//遍历作者
+    ifs.open("Book.txt", ios::in);
+    i = 0;
+    while (getline(ifs, writer))
+    {
+        if (writer.substr(0, 7) == "作者:")
+        {
+            book[i].writer = writer.substr(7, -1);
+            i++;
+        }
+    }
+    ifs.close();
+    //****************************************************//遍历出版商
+    ifs.open("Book.txt", ios::in);
+    i = 0;
+    while (getline(ifs, publisher))
+    {
+        if (publisher.substr(0, 10) == "出版商:")
+        {
+            book[i].publisher = publisher.substr(10, -1);
+            i++;
+        }
+    }
+    ifs.close();
+    //****************************************************//遍历库存
+    ifs.open("Book.txt", ios::in);
+    i = 0;
+    while (getline(ifs, store))
+    {
+        if (store.substr(0, 7) == "库存:")
+        {
+            //多了一个string转int的步骤
+            string string_store = store.substr(7, -1);
+            istringstream is(string_store);
+            int X;
+            is >> X;
+            book[i].store = X;
+            i++;
+        }
+    }
+    ifs.close();
+    //****************************************************//遍历类型
+    ifs.open("Book.txt", ios::in);
+    i = 0;
+    while (getline(ifs, leixing))
+    {
+        if (leixing.substr(0, 7) == "类型:")
+        {
+            book[i].leixing = leixing.substr(7, -1);
+            i++;
+        }
+    }
+    ifs.close();
+    //cout<<booksum;
+}
+
+void supplier_load()
+{
+    ifstream ifs;
+    string snum, sname, address, phone, leixing;
+    int i = 0, sum = 0;
+    ifs.open("Supplier.txt", ios::in);
+    //****************************************************//遍历编号
+    while (getline(ifs, snum))
+    {
+        if (snum.substr(0, 7) == "编号:")
+        {
+            supplier[sum].snum = snum.substr(7, -1);
+            sum++;
+        }
+    }
+    suppliersum = sum; //编号的个数即为供应商个数
+    ifs.close();
+    //****************************************************//遍历名称
+    ifs.open("Supplier.txt", ios::in);
+    while (getline(ifs, sname))
+    {
+        if (sname.substr(0, 7) == "名称:")
+        {
+            supplier[i].sname = sname.substr(7, -1);
+            i++;
+        }
+    }
+    ifs.close();
+    //****************************************************//遍历地址
+    ifs.open("Supplier.txt", ios::in);
+    i = 0;
+    while (getline(ifs, address))
+    {
+        if (address.substr(0, 7) == "地址:")
+        {
+            supplier[i].address = address.substr(7, -1);
+            i++;
+        }
+    }
+    ifs.close();
+    //****************************************************//遍历电话
+    ifs.open("Supplier.txt", ios::in);
+    i = 0;
+    while (getline(ifs, phone))
+    {
+        if (phone.substr(0, 7) == "电话:")
+        {
+            supplier[i].phone = phone.substr(7, -1);
+            i++;
+        }
+    }
+    ifs.close();
+    //****************************************************//遍历类型
+    ifs.open("Supplier.txt", ios::in);
+    i = 0;
+    while (getline(ifs, leixing))
+    {
+        if (leixing.substr(0, 7) == "类型:")
+        {
+            supplier[i].sleixing = leixing.substr(7, -1);
+            i++;
+        }
+    }
+    ifs.close();
+    //cout<<booksum;
+}
+//************************以下为保存*********************
+void Book::save()
+{
+    ofstream ofs;
+    ofs.open("Book.txt", ios::out | ios::app);
+    ofs << "书号:" << bnum << endl;
+    ofs << "书名:" << bname << endl;
+    ofs << "类型:" << leixing << endl;
+    ofs << "作者:" << writer << endl;
+    ofs << "出版商:" << publisher << endl;
+    ofs << "库存:" << store << endl;
+    ofs << endl;
+    ofs.close();
+}
+void Type::save()
+{
+    ofstream ofs;
+    ofs.open("Type.txt", ios::out | ios::app);
+    ofs << "类型:" << leixing << endl;
+    ofs << endl;
+    ofs.close();
+}
+void Supplier::save()
+{
+    ofstream ofs;
+    ofs.open("Supplier.txt", ios::out | ios::app);
+    ofs << "编号:" << snum << endl;
+    ofs << "名称:" << sname << endl;
+    ofs << "类型:" << sleixing << endl;
+    ofs << "地址:" << address << endl;
+    ofs << "电话:" << phone << endl;
+    ofs << endl;
+    ofs.close();
+}
+
 int keyin1() //对图书排序menu1选择函数
 {
     Book books;
@@ -454,6 +686,8 @@ int keyin2(Book book[]) //图书信息管理menu2选择函数
             book[i] = book[i + 1];
         }
         booksum--;
+        cout << "删除成功";
+        Sleep(1000);
         break;
     case 4:
         cout << "请输入要查询的书号:";
@@ -504,6 +738,8 @@ int keyin3(Type type[]) //图书类型管理menu3选择函数
     case 1: //添加书籍类型
         type[typesum].input_leixing();
         typesum++;
+        cout << "添加成功" << endl;
+        Sleep(1000);
         break;
     case 2: //按序号修改类型
         cout << "请输入要修改的类型序号(1--20):";
@@ -532,6 +768,8 @@ int keyin3(Type type[]) //图书类型管理menu3选择函数
             type[i - 1] = type[i];
         }
         typesum--;
+        cout << "删除成功";
+        Sleep(1000);
         break;
     case (4): //按序号查找类型
         cout << "请输入类型序号(1--20):";
@@ -573,9 +811,11 @@ int keyin4(Supplier supplier[]) //供应商管理menu4选择函数
     case (1):
         supplier[suppliersum].input_supplier();
         suppliersum++;
+        cout << "添加成功" << endl;
+        Sleep(1000);
         break;
     case (2):
-        cout << "请输入要修改的书号:";
+        cout << "请输入要修改的编号:";
         cin >> m;
         for (i = 0; i < 20; i++)
             if (m.compare(supplier[i].get_snum()) == 0)
@@ -612,6 +852,8 @@ int keyin4(Supplier supplier[]) //供应商管理menu4选择函数
             supplier[i] = supplier[i + 1];
         }
         suppliersum--;
+        cout << "删除成功";
+        Sleep(1000);
         break;
     case (4):
         cout << "请输入要查询的供应商编号:" << endl;
@@ -699,28 +941,60 @@ void keyin(Type type[], Book book[], Supplier supplier[]) //主菜单选择
         }
         break;
     case 5:
-        sp.tongji();
-        sp.get_sbook();
+        tongji();
         system("pause");
         break;
-    case 6:
-        break;
+    case 6: //一键保存
+        //如果不加这个大括号,ofstream会导致switch报错
+        {
+            ofstream ofs;
+            //保存图书信息
+            ofs.open("Book.txt", ios::out);
+            ofs.close();
+            for (int j = 0; j < booksum; j++)
+            {
+                book[j].save();
+            }
+            //保存类型信息
+            ofs.open("Type.txt", ios::out);
+            ofs.close();
+            for (int j = 0; j < typesum; j++)
+            {
+                type[j].save();
+            }
+            //保存供应商信息
+            ofs.open("Supplier.txt", ios::out);
+            ofs.close();
+            for (int j = 0; j < suppliersum; j++)
+            {
+                supplier[j].save();
+            }
+            cout << "保存成功" << endl;
+            Sleep(1000);
+            break;
+        }
     case 7:
         exit(0);
         break;
-    default:
+    default: //输入1-7之外的字符 则报错
         cout << "输入错误，请重试" << endl;
     }
 }
 
 int main()
 {
+    //从文件夹读入全部信息
+    book_load();
+    type_load();
+    supplier_load();
+
     while (1)
     {
         menu();                      //显示主菜单
         keyin(type, book, supplier); //对主菜单进行选择
         system("cls");
     }
+
     system("pause");
     return 0;
 }
